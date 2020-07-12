@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"log"
@@ -9,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/zkan/oddschana/logger"
 
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
@@ -24,15 +25,15 @@ func init() {
 }
 
 func main() {
-	logger, _ := zap.NewDevelopment()
-	defer logger.Sync() // flushes buffer, if any
+	l, _ := zap.NewDevelopment()
+	defer l.Sync() // flushes buffer, if any
 
 	hostname, _ := os.Hostname()
-	logger = logger.With(zap.String("hostname", hostname))
-	zap.ReplaceGlobals(logger)
+	l = l.With(zap.String("hostname", hostname))
+	zap.ReplaceGlobals(l)
 
 	r := mux.NewRouter()
-	r.Use(LoggerMiddleware(logger))
+	r.Use(logger.Middleware(l))
 
 	db, err := sql.Open("sqlite3", viper.GetString("db.conn"))
 	if err != nil {
@@ -97,7 +98,7 @@ func CheckIn(check Iner) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var chk Check
 
-		r.Context().Value("logger").(*zap.Logger).Info("check-in")
+		logger.L(r.Context()).Info("check-in")
 
 		if err := json.NewDecoder(r.Body).Decode(&chk); err != nil {
 			w.WriteHeader(500)
@@ -117,13 +118,4 @@ func CheckIn(check Iner) http.HandlerFunc {
 // CheckOut check-out from place
 func CheckOut(w http.ResponseWriter, r *http.Request) {
 
-}
-
-func LoggerMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			newLogger := logger.With(zap.String("middleware", "test"))
-			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "logger", newLogger)))
-		})
-	}
 }
