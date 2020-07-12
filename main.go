@@ -9,12 +9,18 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/spf13/viper"
 )
+
+func init() {
+	viper.SetDefault("port", "8000")
+	viper.SetDefault("db.conn", "thaichana.db")
+}
 
 func main() {
 	r := mux.NewRouter()
 
-	db, err := sql.Open("sqlite3", "thaichana.db")
+	db, err := sql.Open("sqlite3", viper.GetString("db.conn"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,7 +33,7 @@ func main() {
 
 	srv := &http.Server{
 		Handler: r,
-		Addr:    "127.0.0.1:8000",
+		Addr:    "127.0.0.1:" + viper.GetString("port"),
 		// Good practice: enforce timeouts for servers you create!
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
