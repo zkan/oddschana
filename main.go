@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -15,6 +16,8 @@ import (
 func init() {
 	viper.SetDefault("port", "8000")
 	viper.SetDefault("db.conn", "thaichana.db")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 }
 
 func main() {
