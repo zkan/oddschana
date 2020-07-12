@@ -11,7 +11,7 @@ CREATE TABLE places
     long REAL
 );
 
-CREATE TABLE visit
+CREATE TABLE visits
 (
     people_id INTEGER NOT NULL,
     place_id INTEGER NOT NULL
