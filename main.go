@@ -17,7 +17,7 @@ func main() {
 
 	// This will serve files under http://localhost:8000/static/<filename>
 	r.HandleFunc("/recently", Recently).Methods(http.MethodPost)
-	r.HandleFunc("/checkin", CheckIn(insertCheckIn)).Methods(http.MethodPost)
+	r.HandleFunc("/checkin", CheckIn(insertCheckIn{})).Methods(http.MethodPost)
 	r.HandleFunc("/checkout", CheckOut).Methods(http.MethodPost)
 
 	srv := &http.Server{
@@ -46,7 +46,9 @@ func Recently(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func insertCheckIn(id, placeID int64) error {
+type insertCheckIn struct{}
+
+func (insertCheckIn) In(id, placeID int64) error {
 	db, err := sql.Open("sqlite3", "thaichana.db")
 	if err != nil {
 		log.Fatal(err)
@@ -61,10 +63,12 @@ func insertCheckIn(id, placeID int64) error {
 	return nil
 }
 
-type InsertCheckInFunc func(id, placeID int64) error
+type Iner interface {
+	In(id, placeID int64) error
+}
 
 // CheckIn check-in to place, returns density (ok, too much)
-func CheckIn(InsertCheckIn InsertCheckInFunc) http.HandlerFunc {
+func CheckIn(check Iner) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var chk Check
 		fmt.Println(r.Body)
@@ -78,7 +82,7 @@ func CheckIn(InsertCheckIn InsertCheckInFunc) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := InsertCheckIn(chk.ID, chk.PlaceID); err != nil {
+		if err := check.In(chk.ID, chk.PlaceID); err != nil {
 			w.WriteHeader(500)
 			json.NewEncoder(w).Encode(err)
 			return
