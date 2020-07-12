@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -34,6 +37,7 @@ func main() {
 
 	r := mux.NewRouter()
 	r.Use(logger.Middleware(l))
+	r.Use(SealMiddleware())
 
 	db, err := sql.Open("sqlite3", viper.GetString("db.conn"))
 	if err != nil {
@@ -112,10 +116,44 @@ func CheckIn(check Iner) http.HandlerFunc {
 			json.NewEncoder(w).Encode(err)
 			return
 		}
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "ok",
+		})
 	}
 }
 
 // CheckOut check-out from place
 func CheckOut(w http.ResponseWriter, r *http.Request) {
 
+}
+
+func SealMiddleware() mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			b, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				return
+			}
+
+			data, err := base64.StdEncoding.DecodeString(string(b))
+			if err != nil {
+				return
+			}
+
+			buff := bytes.NewBuffer(data)
+			r.Body = ioutil.NopCloser(buff)
+
+			next.ServeHTTP(&EncodeWriter{w}, r)
+		})
+	}
+}
+
+type EncodeWriter struct {
+	http.ResponseWriter
+}
+
+func (w *EncodeWriter) Write(b []byte) (int, error) {
+	str := base64.StdEncoding.EncodeToString(b)
+	return w.ResponseWriter.Write([]byte(str))
 }
