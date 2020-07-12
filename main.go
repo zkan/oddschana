@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"log"
@@ -31,6 +32,7 @@ func main() {
 	zap.ReplaceGlobals(logger)
 
 	r := mux.NewRouter()
+	r.Use(LoggerMiddleware(logger))
 
 	db, err := sql.Open("sqlite3", viper.GetString("db.conn"))
 	if err != nil {
@@ -94,6 +96,9 @@ type Iner interface {
 func CheckIn(check Iner) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var chk Check
+
+		r.Context().Value("logger").(*zap.Logger).Info("check-in")
+
 		if err := json.NewDecoder(r.Body).Decode(&chk); err != nil {
 			w.WriteHeader(500)
 			json.NewEncoder(w).Encode(err)
@@ -112,4 +117,13 @@ func CheckIn(check Iner) http.HandlerFunc {
 // CheckOut check-out from place
 func CheckOut(w http.ResponseWriter, r *http.Request) {
 
+}
+
+func LoggerMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			newLogger := logger.With(zap.String("middleware", "test"))
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "logger", newLogger)))
+		})
+	}
 }
