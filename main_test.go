@@ -15,11 +15,9 @@ func TestCheckInHandler(t *testing.T) {
 	req := httptest.NewRequest("POST", "http://example.com/foo", payload)
 	w := httptest.NewRecorder()
 
-	chk := CheckIn{InsertCheckIn: func(id, placeID int64) error {
+	CheckIn(func(id, placeID int64) error {
 		return nil
-	}}
-
-	chk.ServeHTTP(w, req)
+	})(w, req)
 
 	resp := w.Result()
 	body, _ := ioutil.ReadAll(resp.Body)
