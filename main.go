@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -75,11 +74,7 @@ type Iner interface {
 func CheckIn(check Iner) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var chk Check
-		fmt.Println(r.Body)
 		if err := json.NewDecoder(r.Body).Decode(&chk); err != nil {
-			fmt.Println(chk.ID)
-			fmt.Println(chk.PlaceID)
-			fmt.Println(err)
 			w.WriteHeader(500)
 			json.NewEncoder(w).Encode(err)
 			return
