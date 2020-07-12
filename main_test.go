@@ -9,12 +9,6 @@ import (
 	"testing"
 )
 
-type insertStub struct{}
-
-func (insertStub) In(id, placeID int64) error {
-	return nil
-}
-
 func TestCheckInHandler(t *testing.T) {
 	payload := new(bytes.Buffer)
 	json.NewEncoder(payload).Encode(&Check{ID: 123, PlaceID: 234})
