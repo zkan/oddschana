@@ -14,9 +14,15 @@ import (
 func main() {
 	r := mux.NewRouter()
 
+	db, err := sql.Open("sqlite3", "thaichana.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
 	// This will serve files under http://localhost:8000/static/<filename>
 	r.HandleFunc("/recently", Recently).Methods(http.MethodPost)
-	r.HandleFunc("/checkin", CheckIn(InFunc(insertCheckIn))).Methods(http.MethodPost)
+	r.HandleFunc("/checkin", CheckIn(NewInsertCheckIn(db))).Methods(http.MethodPost)
 	r.HandleFunc("/checkout", CheckOut).Methods(http.MethodPost)
 
 	srv := &http.Server{
@@ -45,19 +51,14 @@ func Recently(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func insertCheckIn(id, placeID int64) error {
-	db, err := sql.Open("sqlite3", "thaichana.db")
-	if err != nil {
-		log.Fatal(err)
-		return err
+func NewInsertCheckIn(db *sql.DB) InFunc {
+	return func(id, placeID int64) error {
+		_, err := db.Exec("INSERT INTO visits VALUES(?, ?);", id, placeID)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	defer db.Close()
-
-	_, err = db.Exec("INSERT INTO visits VALUES(?, ?);", id, placeID)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 type InFunc func(id, placeID int64) error
